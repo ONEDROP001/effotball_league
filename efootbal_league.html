@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eFootball League Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony with Image Background -->
+    <!-- Application Structure Plan: A dashboard SPA design with two main interactive views: 'Standings' and 'Fixtures & Scores'. This structure separates the primary output (standings) from the input mechanism (score entry) while keeping them a single click away, which is intuitive for the user. The default view is Standings, as users will most frequently want to check their rank. Score entry is integrated directly within the fixture list to reduce clicks and contextualize the action. A filter on the fixtures page improves usability by allowing players to quickly see their own matches. This design prioritizes a clear, task-oriented flow over a static reproduction of the original fixture list. The points chart has been removed as per user request to simplify the interface and focus solely on the league table for ranking. Admin mode has been added to restrict score updates to a single user via a simple password. -->
+    <!-- Visualization & Content Choices: 
+        - League Standings: Report Info -> Player rankings based on match results. Goal -> Compare, Inform. Viz -> Dynamic HTML Table. Interaction -> Automatically updates on score entry and sorts by points (descending), then goal difference, then goals for. Justification -> A table is the standard and most effective way to display league rankings clearly, and automatic sorting ensures the leader is always visible. Library -> Tailwind for styling.
+        - Fixtures List: Report Info -> Round-by-round match schedule. Goal -> Organize, Input Data. Viz -> Interactive List/Cards. Interaction -> Number inputs for scores, an 'Update' button per match, and a dropdown to filter by player. Score inputs and update buttons are enabled only in 'Admin Mode'. Justification -> This turns a static list into the application's primary interaction point, allowing users to directly manipulate the data (by entering scores) in a structured and intuitive way, now with restricted access for updates. Library -> Vanilla JS and Tailwind. 
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-image: url('__file_access_url__("image_c4a3fb.png")'); /* Direct URL for the uploaded image */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed; /* Keeps the background fixed when content scrolls */
+            background-color: #1a202c; /* Fallback dark background color (slate-900 equivalent) */
+        }
+    </style>
+</head>
+<body class="text-white">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-white">eFootball League</h1>
+            <p class="text-white mt-2">Home & Away Tournament Dashboard</p>
+        </header>
+
+        <nav class="flex justify-center bg-slate-800 bg-opacity-70 rounded-lg p-2 mb-8">
+            <button id="nav-standings" class="nav-button bg-cyan-600 text-white px-6 py-2 rounded-md font-semibold w-1/3">Standings</button>
+            <button id="nav-fixtures" class="nav-button px-6 py-2 rounded-md font-semibold w-1/3">Fixtures & Scores</button>
+            <button id="admin-toggle-btn" class="nav-button px-6 py-2 rounded-md font-semibold w-1/3">Login (Admin)</button>
+        </nav>
+
+        <main>
+            <div id="standings-view">
+                <section id="table-section" class="bg-white bg-opacity-90 rounded-lg shadow-lg p-6 mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-center text-slate-800">League Table</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-max text-left text-slate-800">
+                            <thead class="border-b bg-slate-100">
+                                <tr>
+                                    <th class="p-4 font-semibold">Pos</th>
+                                    <th class="p-4 font-semibold">Team</th>
+                                    <th class="p-4 font-semibold text-center">P</th>
+                                    <th class="p-4 font-semibold text-center">W</th>
+                                    <th class="p-4 font-semibold text-center">D</th>
+                                    <th class="p-4 font-semibold text-center">L</th>
+                                    <th class="p-4 font-semibold text-center">GF</th>
+                                    <th class="p-4 font-semibold text-center">GA</th>
+                                    <th class="p-4 font-semibold text-center">GD</th>
+                                    <th class="p-4 font-semibold text-center">Pts</th>
+                                </tr>
+                            </thead>
+                            <tbody id="standings-body">
+                                <!-- Standings will be rendered here by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <div id="fixtures-view" class="hidden">
+                 <section id="fixtures-section" class="bg-white bg-opacity-90 rounded-lg shadow-lg p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                         <h2 class="text-2xl font-bold text-slate-800">Fixtures</h2>
+                         <div>
+                            <label for="player-filter" class="font-semibold mr-2 text-slate-800">Filter by Player:</label>
+                            <select id="player-filter" class="p-2 border rounded-md bg-slate-100 text-slate-800">
+                                <!-- Player options will be rendered here by JS -->
+                            </select>
+                         </div>
+                    </div>
+                    <div id="fixtures-list" class="space-y-6">
+                        <!-- Fixtures will be rendered here by JS -->
+                    </div>
+                 </section>
+            </div>
+        </main>
+
+    </div>
+
+    <script>
+        const participants = ['ONEDROP', 'MAV_ELA', 'MK', 'Skibe39', 'ODALI_24', 'DRI_LER'];
+        
+        const fixtures = [
+            { round: 1, home: 'ONEDROP', away: 'DRI_LER', homeScore: null, awayScore: null },
+            { round: 1, home: 'MAV_ELA', away: 'ODALI_24', homeScore: null, awayScore: null },
+            { round: 1, home: 'MK', away: 'Skibe39', homeScore: null, awayScore: null },
+            { round: 2, home: 'ONEDROP', away: 'ODALI_24', homeScore: null, awayScore: null },
+            { round: 2, home: 'DRI_LER', away: 'Skibe39', homeScore: null, awayScore: null },
+            { round: 2, home: 'MAV_ELA', away: 'MK', homeScore: null, awayScore: null },
+            { round: 3, home: 'ONEDROP', away: 'Skibe39', homeScore: null, awayScore: null },
+            { round: 3, home: 'ODALI_24', away: 'MK', homeScore: null, awayScore: null },
+            { round: 3, home: 'DRI_LER', away: 'MAV_ELA', homeScore: null, awayScore: null },
+            { round: 4, home: 'ONEDROP', away: 'MK', homeScore: null, awayScore: null },
+            { round: 4, home: 'Skibe39', away: 'MAV_ELA', homeScore: null, awayScore: null },
+            { round: 4, home: 'ODALI_24', away: 'DRI_LER', homeScore: null, awayScore: null },
+            { round: 5, home: 'ONEDROP', away: 'MAV_ELA', homeScore: null, awayScore: null },
+            { round: 5, home: 'MK', away: 'DRI_LER', homeScore: null, awayScore: null },
+            { round: 5, home: 'Skibe39', away: 'ODALI_24', homeScore: null, awayScore: null },
+            { round: 6, home: 'DRI_LER', away: 'ONEDROP', homeScore: null, awayScore: null },
+            { round: 6, home: 'ODALI_24', away: 'MAV_ELA', homeScore: null, awayScore: null },
+            { round: 6, home: 'Skibe39', away: 'MK', homeScore: null, awayScore: null },
+            { round: 7, home: 'ODALI_24', away: 'ONEDROP', homeScore: null, awayScore: null },
+            { round: 7, home: 'Skibe39', away: 'DRI_LER', homeScore: null, awayScore: null },
+            { round: 7, home: 'MK', away: 'MAV_ELA', homeScore: null, awayScore: null },
+            { round: 8, home: 'Skibe39', away: 'ONEDROP', homeScore: null, awayScore: null },
+            { round: 8, home: 'MK', away: 'ODALI_24', homeScore: null, awayScore: null },
+            { round: 8, home: 'MAV_ELA', away: 'DRI_LER', homeScore: null, awayScore: null },
+            { round: 9, home: 'MK', away: 'ONEDROP', homeScore: null, awayScore: null },
+            { round: 9, home: 'MAV_ELA', away: 'Skibe39', homeScore: null, awayScore: null },
+            { round: 9, home: 'DRI_LER', away: 'ODALI_24', homeScore: null, awayScore: null },
+            { round: 10, home: 'MAV_ELA', away: 'ONEDROP', homeScore: null, awayScore: null },
+            { round: 10, home: 'DRI_LER', away: 'MK', homeScore: null, awayScore: null },
+            { round: 10, home: 'ODALI_24', away: 'Skibe39', homeScore: null, awayScore: null },
+        ].map((f, i) => ({ ...f, id: i }));
+
+        let standingsData = {};
+        let isAdmin = false; 
+        const ADMIN_PASSWORD = "admin"; 
+
+        const standingsBody = document.getElementById('standings-body');
+        const fixturesList = document.getElementById('fixtures-list');
+        const playerFilter = document.getElementById('player-filter');
+        
+        const navStandingsBtn = document.getElementById('nav-standings');
+        const navFixturesBtn = document.getElementById('nav-fixtures');
+        const adminToggleBtn = document.getElementById('admin-toggle-btn'); 
+        const standingsView = document.getElementById('standings-view');
+        const fixturesView = document.getElementById('fixtures-view');
+
+        function initializeStandings() {
+            standingsData = {};
+            participants.forEach(p => {
+                standingsData[p] = { p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 };
+            });
+        }
+
+        function calculateStandings() {
+            initializeStandings();
+            fixtures.forEach(fixture => {
+                if (fixture.homeScore !== null && fixture.awayScore !== null) {
+                    const home = standingsData[fixture.home];
+                    const away = standingsData[fixture.away];
+
+                    home.p += 1;
+                    away.p += 1;
+                    home.gf += fixture.homeScore;
+                    home.ga += fixture.awayScore;
+                    away.gf += fixture.awayScore;
+                    away.ga += fixture.homeScore;
+
+                    if (fixture.homeScore > fixture.awayScore) {
+                        home.w += 1;
+                        away.l += 1;
+                        home.pts += 3;
+                    } else if (fixture.homeScore < fixture.awayScore) {
+                        away.w += 1;
+                        home.l += 1;
+                        away.pts += 3;
+                    } else {
+                        home.d += 1;
+                        away.d += 1;
+                        home.pts += 1;
+                        away.pts += 1;
+                    }
+                }
+            });
+            
+            for (const player in standingsData) {
+                standingsData[player].gd = standingsData[player].gf - standingsData[player].ga;
+            }
+        }
+        
+        function renderStandings() {
+            const sortedStandings = participants.map(name => ({ name, ...standingsData[name] }))
+                .sort((a, b) => {
+                    if (b.pts !== a.pts) return b.pts - a.pts;
+                    if (b.gd !== a.gd) return b.gd - a.gd;
+                    if (b.gf !== a.gf) return b.gf - a.gf;
+                    return a.name.localeCompare(b.name);
+                });
+
+            standingsBody.innerHTML = '';
+            sortedStandings.forEach((team, index) => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-slate-50';
+                if (index === 0) {
+                    row.classList.add('bg-cyan-50', 'font-semibold');
+                }
+                row.innerHTML = `
+                    <td class="p-4">${index + 1}</td>
+                    <td class="p-4">${team.name}</td>
+                    <td class="p-4 text-center">${team.p}</td>
+                    <td class="p-4 text-center">${team.w}</td>
+                    <td class="p-4 text-center">${team.d}</td>
+                    <td class="p-4 text-center">${team.l}</td>
+                    <td class="p-4 text-center">${team.gf}</td>
+                    <td class="p-4 text-center">${team.ga}</td>
+                    <td class="p-4 text-center">${team.gd}</td>
+                    <td class="p-4 text-center font-bold">${team.pts}</td>
+                `;
+                standingsBody.appendChild(row);
+            });
+        }
+
+        function renderFixtures(filter = 'All') {
+            fixturesList.innerHTML = '';
+            const rounds = [...new Set(fixtures.map(f => f.round))];
+            
+            rounds.forEach(roundNum => {
+                const roundFixtures = fixtures.filter(f => f.round === roundNum && (filter === 'All' || f.home === filter || f.away === filter));
+                if (roundFixtures.length === 0) return;
+
+                const roundContainer = document.createElement('div');
+                roundContainer.innerHTML = `<h3 class="text-xl font-semibold mb-2 border-b pb-2 text-slate-800">Round ${roundNum}</h3>`;
+                
+                const matchesContainer = document.createElement('div');
+                matchesContainer.className = 'grid grid-cols-1 lg:grid-cols-3 gap-4';
+                
+                roundFixtures.forEach(f => {
+                    const matchCard = document.createElement('div');
+                    matchCard.className = 'bg-slate-50 rounded-lg p-4 border text-slate-800'; /* Ensure text is dark on light card */
+                    matchCard.innerHTML = `
+                        <div class="flex justify-between items-center text-lg font-bold">
+                            <span class="text-right w-2/5">${f.home}</span>
+                            <span class="text-slate-500">vs</span>
+                            <span class="text-left w-2/5">${f.away}</span>
+                        </div>
+                        <div class="flex justify-center items-center gap-2 my-3">
+                             <input type="number" id="home-score-${f.id}" class="w-16 p-2 text-center border rounded-md" min="0" value="${f.homeScore !== null ? f.homeScore : ''}" ${isAdmin ? '' : 'disabled'}>
+                             <span>-</span>
+                             <input type="number" id="away-score-${f.id}" class="w-16 p-2 text-center border rounded-md" min="0" value="${f.awayScore !== null ? f.awayScore : ''}" ${isAdmin ? '' : 'disabled'}>
+                        </div>
+                        <button data-id="${f.id}" class="update-score-btn w-full bg-cyan-600 text-white py-2 rounded-md hover:bg-cyan-700 transition-colors ${isAdmin ? '' : 'opacity-50 cursor-not-allowed'}" ${isAdmin ? '' : 'disabled'}>Update Score</button>
+                    `;
+                    matchesContainer.appendChild(matchCard);
+                });
+                
+                roundContainer.appendChild(matchesContainer);
+                fixturesList.appendChild(roundContainer);
+            });
+
+            document.querySelectorAll('.update-score-btn').forEach(btn => {
+                btn.addEventListener('click', handleScoreUpdate);
+            });
+        }
+        
+        function handleScoreUpdate(event) {
+            const matchId = parseInt(event.target.dataset.id);
+            const homeScore = parseInt(document.getElementById(`home-score-${matchId}`).value);
+            const awayScore = parseInt(document.getElementById(`away-score-${matchId}`).value);
+
+            if (!isNaN(homeScore) && !isNaN(awayScore)) {
+                const fixture = fixtures.find(f => f.id === matchId);
+                fixture.homeScore = homeScore;
+                fixture.awayScore = awayScore;
+                
+                calculateStandings();
+                renderStandings();
+                
+                event.target.textContent = 'Updated!';
+                event.target.classList.remove('bg-cyan-600');
+                event.target.classList.add('bg-green-500');
+                setTimeout(() => {
+                    event.target.textContent = 'Update Score';
+                    event.target.classList.remove('bg-green-500');
+                    event.target.classList.add('bg-cyan-600');
+                }, 2000);
+            }
+        }
+        
+        function populateFilter() {
+            playerFilter.innerHTML = '<option value="All">All Players</option>';
+            participants.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p;
+                option.textContent = p;
+                playerFilter.appendChild(option);
+            });
+            playerFilter.addEventListener('change', (e) => renderFixtures(e.target.value));
+        }
+        
+        function setupNavigation() {
+            navStandingsBtn.addEventListener('click', () => {
+                standingsView.classList.remove('hidden');
+                fixturesView.classList.add('hidden');
+                navStandingsBtn.classList.add('bg-cyan-600', 'text-white');
+                navFixturesBtn.classList.remove('bg-cyan-600', 'text-white');
+            });
+
+            navFixturesBtn.addEventListener('click', () => {
+                standingsView.classList.add('hidden');
+                fixturesView.classList.remove('hidden');
+                navFixturesBtn.classList.add('bg-cyan-600', 'text-white');
+                navStandingsBtn.classList.remove('bg-cyan-600', 'text-white');
+            });
+
+            adminToggleBtn.addEventListener('click', () => {
+                if (isAdmin) {
+                    isAdmin = false;
+                    adminToggleBtn.textContent = 'Login (Admin)';
+                    adminToggleBtn.classList.remove('bg-red-600', 'text-white');
+                    adminToggleBtn.classList.add('bg-slate-200', 'text-slate-800');
+                    renderFixtures(playerFilter.value); // Re-render fixtures to disable inputs
+                } else {
+                    const password = prompt("Enter admin password:");
+                    if (password === ADMIN_PASSWORD) {
+                        isAdmin = true;
+                        adminToggleBtn.textContent = 'Logout (Admin)';
+                        adminToggleBtn.classList.remove('bg-slate-200', 'text-slate-800');
+                        adminToggleBtn.classList.add('bg-red-600', 'text-white');
+                        renderFixtures(playerFilter.value); // Re-render fixtures to enable inputs
+                    } else {
+                        alert("Incorrect password!");
+                    }
+                }
+            });
+        }
+
+        function init() {
+            calculateStandings();
+            renderStandings();
+            renderFixtures(); // Initial render with inputs disabled
+            populateFilter();
+            setupNavigation();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

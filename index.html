@@ -389,7 +389,7 @@
             window.setupNavigation();
             window.populateFilter(); // Initial filter population
             authenticateFirebase(); // Start Firebase auth and data loading
-            // populateInitialFixturesToFirestore(); // <--- THIS LINE IS COMMENTED BY DEFAULT
+            populateInitialFixturesToFirestore(); // <--- THIS LINE IS COMMENTED BY DEFAULT
         };
 
         document.addEventListener('DOMContentLoaded', window.init);

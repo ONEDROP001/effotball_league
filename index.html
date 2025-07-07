@@ -14,9 +14,21 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, collection, onSnapshot, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global variables provided by the Canvas environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        // IMPORTANT: This is YOUR Firebase project's configuration!
+        // It has been inserted directly from the values you provided.
+        const firebaseConfig = {
+            apiKey: "AIzaSyAt5_irgJ4RBLlOleGDfAWd7mVDP1F3UG8",
+            authDomain: "efootball-leagueoo1.firebaseapp.com",
+            projectId: "efootball-leagueoo1",
+            storageBucket: "efootball-leagueoo1.firebasestorage.app",
+            messagingSenderId: "69599996078",
+            appId: "1:69599996078:web:0e2c7ecd69aeeda33fa53f",
+            measurementId: "G-18W7CP9E73"
+        };
+
+        // These variables are typically provided by the Canvas environment, but we're hardcoding firebaseConfig above
+        // const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // This line is now effectively bypassed
+        // const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {}; // This line is now effectively bypassed
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // Initialize Firebase
@@ -77,7 +89,9 @@
         window.fixturesView = document.getElementById('fixtures-view');
 
         // Firestore collection reference
-        const fixturesCollectionRef = collection(db, `artifacts/${appId}/public/data/efootball_fixtures`);
+        // Use the projectId from firebaseConfig for the path if __app_id is not available
+        const collectionAppId = firebaseConfig.projectId || 'default-app-id'; 
+        const fixturesCollectionRef = collection(db, `artifacts/${collectionAppId}/public/data/efootball_fixtures`);
 
         async function initFirestoreData() {
             if (!isAuthReady) {
@@ -232,7 +246,9 @@
             const awayScore = parseInt(document.getElementById(`away-score-${matchId}`).value);
 
             if (!isNaN(homeScore) && !isNaN(awayScore)) {
-                const fixtureDocRef = doc(db, `artifacts/${appId}/public/data/efootball_fixtures`, matchId);
+                // Use the projectId from firebaseConfig for the path if __app_id is not available
+                const updateCollectionAppId = firebaseConfig.projectId || 'default-app-id'; 
+                const fixtureDocRef = doc(db, `artifacts/${updateCollectionAppId}/public/data/efootball_fixtures`, matchId);
                 try {
                     await setDoc(fixtureDocRef, { homeScore, awayScore }, { merge: true });
                     console.log("Score updated in Firestore:", matchId, homeScore, awayScore);
@@ -307,7 +323,8 @@
                 }
             });
         };
-        Initial population of fixtures to Firestore (run ONLY ONCE)
+
+        // Initial population of fixtures to Firestore (run ONLY ONCE)
         // This function adds the initial 30 fixtures to your Firestore database.
         // You should uncomment and run this once, then comment it out again.
         async function populateInitialFixturesToFirestore() {
@@ -372,13 +389,14 @@
             window.setupNavigation();
             window.populateFilter(); // Initial filter population
             authenticateFirebase(); // Start Firebase auth and data loading
+            // populateInitialFixturesToFirestore(); // <--- THIS LINE IS COMMENTED BY DEFAULT
         };
 
         document.addEventListener('DOMContentLoaded', window.init);
     </script>
 
     <!-- Chosen Palette: Calm Harmony (No Image Background) -->
-    <!-- Application Structure Plan: A dashboard SPA design with two main interactive views: 'Standings' and 'Fixtures & Scores'. This structure separates the primary output (standings) from the input mechanism (score entry) while keeping them a single click away, which is intuitive for the user. The default view is Standings, as users will most frequently want to check their rank. Score entry is integrated directly within the fixture list to reduce clicks and contextualize the action. A filter on the fixtures page improves usability by allowing players to quickly see their own matches. This design prioritizes a clear, task-oriented flow over a static reproduction of the original fixture list. The points chart has been removed as per user request to simplify the interface and focus solely on the league table for ranking. Admin mode has been added to restrict score updates to a single user via a simple password. Data persistence is now implemented using Firestore to save and load scores. -->
+    <!-- Application Structure Plan: A dashboard SPA design with two main interactive views: 'Standings' and 'Fixtures & Scores'. This structure separates the primary output (standings) from the input mechanism (score entry) while keeping them a single click away, which is intuitive for the user. The default view is Standings, as users will most frequently want to check their rank. Score entry is integrated directly within the fixture list to reduce clicks and contextualize the action. A filter on the fixtures page improves usability by allowing players to quickly see their own matches. This design prioritizes a clear, task-oriented flow over a static reproduction of the original fixture list. The points chart hass been removed as per user request to simplify the interface and focus solely on the league table for ranking. Admin mode has been added to restrict score updates to a single user via a simple password. Data persistence is now implemented using Firestore to save and load scores. -->
     <!-- Visualization & Content Choices: 
         - League Standings: Report Info -> Player rankings based on match results. Goal -> Compare, Inform. Viz -> Dynamic HTML Table. Interaction -> Automatically updates on score entry and sorts by points (descending), then goal difference, then goals for. Justification -> A table is the standard and most effective way to display league rankings clearly, and automatic sorting ensures the leader is always visible. Library -> Tailwind for styling.
         - Fixtures List: Report Info -> Round-by-round match schedule. Goal -> Organize, Input Data. Viz -> Interactive List/Cards. Interaction -> Number inputs for scores, an 'Update' button per match, and a dropdown to filter by player. Score inputs and update buttons are enabled only in 'Admin Mode'. Justification -> This turns a static list into the application's primary interaction point, allowing users to directly manipulate the data (by entering scores) in a structured and intuitive way, now with restricted access for updates. Library -> Vanilla JS and Tailwind. 

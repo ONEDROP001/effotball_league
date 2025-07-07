@@ -12,7 +12,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global variables provided by the Canvas environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -63,7 +63,7 @@
         window.fixtures = []; // Will be populated from Firestore
         window.standingsData = {};
         window.isAdmin = false; 
-        window.ADMIN_PASSWORD = "@Hosea2247"; // Set your desired password here
+        window.ADMIN_PASSWORD = "@Hosea224"; // Set your desired password here
 
         window.standingsBody = document.getElementById('standings-body');
         window.fixturesList = document.getElementById('fixtures-list');
@@ -308,7 +308,7 @@
             });
         };
 
-        // Initial population of fixtures to Firestore (run ONLY ONCE)
+        //Initial population of fixtures to Firestore (run ONLY ONCE)
         // This function adds the initial 30 fixtures to your Firestore database.
         // You should uncomment and run this once, then comment it out again.
         async function populateInitialFixturesToFirestore() {
